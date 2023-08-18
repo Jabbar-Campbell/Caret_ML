@@ -1,3 +1,5 @@
+#! /bin/R
+
 install.packages('dslabs')
 install.packages("caret")
 install.packages('heights')
@@ -46,7 +48,7 @@ length(y)
 # our data and giving and mark those positions with and index number
 # this is done with the createDataPartition. Those indexs are assigned as Test data and everthing else 
 # we set as  to training data
- 
+# its just a key really 
 set.seed(2007)
 test_index<-createDataPartition(y,times = 1, p = .05, list = TRUE)
 x_Test<-heights[test_index,]# a subset index's
@@ -101,7 +103,7 @@ lapply(cutoff,function(x){
 
 
 
-# BIAS IN THE TRAINING SET IS DETRIMENTAL
+# ACCURACY isn't enough since bias warps our predictions
 # A table of predicted vs actual data gives us valuable info 
 # we sampled  sex data based on indices and compared it to a sample(data) function on sex  
 # of the predicted female 7 where female the rest where actually males
@@ -114,22 +116,53 @@ table(predicted_data = y_hat, actual_data = x_Test$sex)
 
 
 
-######################################### SENSITIVITY AND sPECIFICITY############################################## 
+######################################### SENSITIVITY AND SPECIFICITY############################################## 
 # 1 = positive
 # 0 = negative
-# SENSITIVITY is the ability to predict a positive outcome
+
+# SENSITIVITY(predicted, actual) 
+# is the ability to predict a positive outcome
 # when the actual outcome was also positive ie
 # y_hat == 1 when y_test or y _train == 1
 # its a ratio of the true positives 
 # divided by the true positive plus False Negatives
-# SPECIFICTY 
+
+# SPECIFICTY(predicted,actual) 
 # if we can go the other way and predict negative cases
 # as well then this speaks to specificity
 # y_hat == 0 when y_test or y_train == 0
 
-# a confusion matrix expresses this!
+# CONFUSIONMATRIX(predicted,actual)
+# a confusion matrix expresses accuracy, sensitivity, specificity and prevelance
+# cm<-confusionMatrix(data = factor(y_hat), reference = factor(x_Test$sex))
+# cm$overall["Accuracy"]
+# cm$byClassic[c("Sensitivity","Specficity","Prevalence")]
 
-confusionMatrix(data = factor(y_hat), reference = factor(x_Test$sex))
+# F_MEAS(predict,actual)
+# summarized the confusion matrix in a single value
+
+# Balanced accuracy is another way so summarize this in a single value
+# called an F score. 
+# Plotting this score against
+# our cutoffs in y_hat3 we get a value of 66. 
+# which is where our sensitive and specificity is best
+lapply(cutoff,function(x){
+  y_hat3 <- ifelse(x_Train$height > x, "Male" , "Female")   
+  #factor(levels = levels(x_Test$sex))
+  #mean(y_hat3 == x_Train$sex)
+   TPR = sensitivity(y_hat3, x_Test$sex)
+   TNR = specificity(y_hat3, x_Test$sex)
+   FPR = 1-specificity(y_hat3, x_Test$sex)
+   cm =   confusionMatrix(data = factor(y_hat3), reference = factor(x_Train$sex))
+   F = F_meas(data = y_hat3, reference = factor(x_Train$sex) )
+} )
+
+
+
+# Another  tool is the ROC curve. This plot the specificity 
+# against sensitivity
+
+
 
 data("heights")
 data(heights)
