@@ -158,7 +158,7 @@ lapply(cutoff,function(x){
 } )
 
 
-
+1-.90
 # Another  tool is the ROC curve. This plot the specificity 
 # against sensitivity
 
