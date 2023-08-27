@@ -105,6 +105,12 @@ heights %>%
   summarize(p = mean(sex =="Male"), height = mean(height)) %>% 
   qplot(height,p,data = .)
 
+
+
+
+
+
+
 # there is a Normal Distribution
 #              Bivariate Normal Distribution
 #                           multivariate Normal Distribution
@@ -113,8 +119,10 @@ sigma<-9*matrix(c(1,0.5,0.5,1),2,2) # first we make a matrix of covariance
 dat<-MASS::mvrnorm(n=10000,c(69,69),sigma) %>%  #combine sample number desired, mean of the variables and the variance
   data.frame() %>% setNames(c("x","y")) # x and y are related to each other
 
-
-ps<-seq(0,1,0.1)
+# here we look at this 2 dimensional distribution
+# by setting Quantiles and getting the mean or  p()
+# and plotting binned data as opposed to individual points
+# ?????? why where bins not made for the z plane distripution?
 
 dat %>% 
   mutate(g = cut(x, quantile(x, ps), include.lowest = TRUE)) %>%
