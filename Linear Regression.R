@@ -8,7 +8,7 @@
 # X_test  X_test  | y_test y_test
 
 library(purrr)
-
+library(caret)
 library('ggplot2')
 
 
@@ -41,11 +41,15 @@ dat<-MASS::mvrnorm(n=100, c(69,69),Sigma) %>% #is this 3d space
 
 
 
-set.seed(1)
-y=dat$y
+#set.seed(1)
+y=dat$x
 #we have sampled the data according to these indexs 100 different ways
+# using predictor or output shouldn't matter?????????????
 index<-createDataPartition(y,times = 100, p = .5, list = TRUE)
 
+
+
+#Train set are the indexs
 output<-list()
 for (i in 1:100){
   output[[i]]<-dat[index[[i]],]
@@ -54,6 +58,20 @@ for (i in 1:100){
 }
 #assign to a column
 dat$x_train <- output
+dat$indices<-index
+
+#Test set are NOT the index's
+#dat[,c(1,2)][-c(dat$indices[[1]]),]
+output<-list()
+for (i in 1:100){
+  output[[i]]<-dat[,c(1,2)][-c(dat$indices[[i]]),]
+  output[[i]]<-as.data.frame(output[[i]])
+  output[i]
+}
+#assign to a column
+dat$x_test <- output
+
+  
 
 
 
@@ -65,12 +83,13 @@ dat$Model<-Model
 
 
 
-# run predictions for column x_train[1,] using each respective linear model give us a y_hat
-dat$x_train
-lapply(dat$x_train,`[`,"x")[1]
+# run predictions for the X variable of  x_test[,]  using each respective linear model(from the training data) 
+# to give us  a y_hat
+dat$x_test
+lapply(dat$x_test,`[`,"x")[1]
 predict(dat$Model[[1]],lapply(dat$x_train,`[`,"x")[[1]])
 
-test<-mapply(predict, dat$Model, lapply(dat$x_train,`[`,"x"))
+test<-mapply(predict, dat$Model, lapply(dat$x_test,`[`,"x"))
 
 test<-t(test)
 test<-as.data.frame(test)
@@ -83,17 +102,18 @@ dat$y_hats<-as.list(test$data)
 dat$y_hats<-lapply(dat$y_hats, as.data.frame)
 dat$y_hats<-lapply(dat$y_hats, as.numeric)
 
-dat
 
 
 
 
-## we make dataframes of origninal x_train data and predicted y_hat data for ggplot to use
+
+## we make dataframes of the  X variable from  x_test[,] data 
+# and predicted y_hat data for ggplot to use so we can draw the model in red
 #pred_df<-data.frame(x=dat$x_train[[1]]$x,y=dat$y_hats[[1]]) 
 
 pred_df<-list()
 for (i in 1:100){
-  pred_df[[i]] <-data.frame(x=dat$x_train[[i]]$x,y=dat$y_hats[[i]]) 
+  pred_df[[i]] <-data.frame(x=dat$x_test[[i]]$x,y=dat$y_hats[[i]]) 
   pred_df
 }
 #assign to a column
@@ -103,11 +123,16 @@ dat$pred_df<-pred_df
 
 
 # we make plots 
-#gray dots is our training data and a line which is our prediciton using   x_Train and predicted Y
-#
+# gray dots is our original data and a line which is our prediction using a 
+# model we made from training data but using  "Test" and predicted Y
+# we can compare our linear model to any of the sets
+dat$x_train[[i]]
+dat$x_test[[i]]
+dat[,c(1,2)]
+
 plot<-list()
 for (i in 1:100){
-  plot[[i]]<-ggplot(data = dat$x_train[[i]],aes(x=x, y=y))+
+  plot[[i]]<-ggplot(data = dat[,c(1,2)],aes(x=x, y=y))+
            geom_point(aes(size =2, alpha=.5))+
            geom_line(color = "red",size =1.5,alpha = .5,data = dat$pred_df[[i]], aes(x=x,y=y))+
            theme_bw()+ labs(title = paste0( "Plot no ",i ))
@@ -117,7 +142,7 @@ for (i in 1:100){
 # assign it as a column
 dat$plots<-plot
 
-
+plot[100]
 
 
 # lets also add RMSE using a function where m is for model (fitted) values, o is for observed (true) values.
@@ -129,10 +154,14 @@ RMSE = function(m, o){
 
 rmse<-list()
 for (i in 1:100) {
-      rmse[i]<- RMSE(dat$y_hats[[i]],dat$x_train[[i]]$'y')  
+      rmse[i]<- RMSE(dat$y_hats[[i]],dat$x_test[[i]]$'y')  
       rmse
   
 }
 
 #assign to a a column
 dat$rmse<-rmse
+
+
+mean(unlist(dat$rmse))
+sd(unlist(dat$rmse))
