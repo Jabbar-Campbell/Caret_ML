@@ -32,7 +32,7 @@ RMSE_N = function(n){
   
 #n<-100
 # First we create our data set of a certain size 
-Sigma<-9*matrix(c(1,.5,.5,1),2,2) # a 2x2 matrix for covariance
+Sigma<-9*matrix(c(1,.95,.95,1),2,2) # a 2x2 matrix for covariance
 DAT<-MASS::mvrnorm(n = n, c(69,69),Sigma) %>% #is this 3d space
   data.frame() %>% # I think we turned 3d into 2d
   setNames(c("x","y"))
@@ -177,7 +177,116 @@ print (paste("SD of", n, "is", sd(unlist(dat$rmse)))  )
 }
 
 set.seed(1)
-#set.seed(NULL)
-#RMSE_N(100)
+RMSE_N(100)
 sapply(c(100,500,1000,5000,10000), RMSE_N)
+
+
+
+
+
+
+
+
+
+set.seed(1)
+Sigma <- matrix(c(1.0, 0.75, 0.75, 0.75, 1.0, 0.25, 0.75, 0.25, 1.0), 3, 3)
+dat <- MASS::mvrnorm(n = 100, c(0, 0, 0), Sigma) %>%
+  data.frame() %>% setNames(c("y", "x_1", "x_2"))
+
+y<-dat$y
+index= createDataPartition(y, times = 1,p = .5)
+
+x_Train<- dat[index[[1]],]
+
+x_Test<-dat[-index[[1]],]
+
+#RMSE(dat$x_1,dat$x_2)
+
+
+my_model<-lm(y ~ x_1 + x_2, x_Train)
+y_hat<-predict(my_model, x_Test[,-1] )
+
+
+# this is a plane of points  representing our model
+# if only it could be a plane see below
+red_line<-data.frame(y_hat, x_Test[,-1])  
+
+
+# use ggplot to plot 3 dimensional data
+ggplot(data = dat, aes(x = x_1,y = y, z = x_2))+
+  geom_point( size = 3, alpha = .5)+
+  
+  fig<-plotly::plot_ly(x = dat$x_1,y = dat$y, z = dat$x_2, alpha = .8) %>% 
+  plotly::add_trace(x= ~x_1 , y = ~y_hat, z= ~x_2, data = red_line, color = "red") %>% 
+  plotly::add_trace(x= ~x_1 , y = ~y_hat_2, z= ~x_2, data = red_line_2, color = "red")
+fig
+
+plotly::plot_ly( x= red_line_2$x_1 ,y=red_line_2$y_hat_2, z = red_line_2$x_2, color = "red" )
+
+
+
+
+
+
+#####ANOTHER WAY builds a line thru the points
+# using the spline package df = 4 is like a 4 point logistic
+# 2 and the model will be more linear
+library(splines)
+
+my_model_2 <- lm(cbind(x_Train$x_1, x_Train$y) ~ ns(x_Train$x_2, df = 1))
+
+predict(my_model_2, x_Test[-3])
+red_line_2<-data.frame(predict(my_model_2, x_Test[-3]),x_Train$x_2 )
+
+add_trace(fig,
+          x= red_line_2$X1, 
+          y = red_line_2$x_Train.x_2, 
+          z= red_line_2$X2, color = "red", size = 2)  
+
+
+
+
+
+
+
+# To draw a plane through the data
+# You need to sample the points based on the predict object created from your lm call. This creates a surface 
+# similar to the volcano object which you can then add to your plot.
+# Graph Resolution is important for more complex shapes
+graph_reso <- 0.05
+# given x and y give me model for how deep thats our surface
+redline_lm <- lm(x_2 ~ 0 + x_1 + y_hat,data = red_line)
+# Setup Axis
+axis_x <- seq(min(red_line$x_1), max(red_line$x_1), by = graph_reso)
+axis_y <- seq(min(red_line$y_hat), max(red_line$y_hat), by = graph_reso)
+
+# Sample points and make a surface to plot
+redline_lm_surface <- expand.grid(x_1 = axis_x,y_hat = axis_y,KEEP.OUT.ATTRS = F)
+redline_lm_surface$x_2 <- predict.lm(redline_lm , newdata = redline_lm_surface)
+redline_lm_surface <- reshape2::acast(redline_lm_surface, y_hat ~ x_1, value.var = "x_2") #y ~ x
+
+
  
+# add the surface
+library(plotly)
+ 
+fig<-plot_ly(dat,x = ~x_1,y = ~y, z = ~x_2, alpha = .8) 
+fig <- fig %>% add_markers()
+fig <- fig %>% layout(scene = list(xaxis = list(title = 'x_1'),
+                                   yaxis = list(title = 'y_hat'),
+                                   zaxis = list(title = 'x_2')))
+
+
+
+ 
+fig<-add_trace(fig,
+               x= axis_x, 
+               y = axis_y, 
+               z= redline_lm_surface, 
+               type = "surface", alpha = .3)  
+fig      
+
+
+
+
+
