@@ -10,6 +10,7 @@
 library(purrr)
 library(caret)
 library('ggplot2')
+library(plotly)
 
 
 # Sometimes we have more than one thing to predict ie y_hat1 and y_hat2
@@ -193,20 +194,32 @@ Sigma <- matrix(c(1.0, 0.75, 0.75, 0.75, 1.0, 0.25, 0.75, 0.25, 1.0), 3, 3)
 dat <- MASS::mvrnorm(n = 100, c(0, 0, 0), Sigma) %>%
   data.frame() %>% setNames(c("y", "x_1", "x_2"))
 
+set.seed(1)
 y<-dat$y
-index= createDataPartition(y, times = 1,p = .5)
+index= createDataPartition(dat$y, times = 1,p = .5)
 
 x_Train<- dat[index[[1]],]
 
 x_Test<-dat[-index[[1]],]
 
-#RMSE(dat$x_1,dat$x_2)
 
-
+# models built on various features
 my_model<-lm(y ~ x_1 + x_2, x_Train)
-y_hat<-predict(my_model, x_Test[,-1] )
+my_model_x1<-lm(y ~ x_1, x_Train)
+my_model_x2<-lm(y ~ x_2, x_Train)
+
+# predictions built on various models
+y_hat<-predict(my_model, x_Test )#prediction of both
+y_hat_x1<-predict(my_model_x1, x_Test) #prediction of of x1
+y_hat_x2<-predict(my_model_x2, x_Test) #prediction of of x2
 
 
+#compare orginal data to predicted data using models built from
+#both variables x1 or x2
+#RMSE(fitted, orginal )
+RMSE(y_hat,x_Test$y)    # RMSE .335
+RMSE(y_hat_x1,x_Test$y) # RMSE .639
+RMSE(y_hat_x2,x_Test$y) # RMSE .690
 # this is a plane of points  representing our model
 # if only it could be a plane see below
 red_line<-data.frame(y_hat, x_Test[,-1])  
@@ -216,14 +229,11 @@ red_line<-data.frame(y_hat, x_Test[,-1])
 ggplot(data = dat, aes(x = x_1,y = y, z = x_2))+
   geom_point( size = 3, alpha = .5)+
   
-  fig<-plotly::plot_ly(x = dat$x_1,y = dat$y, z = dat$x_2, alpha = .8) %>% 
-  plotly::add_trace(x= ~x_1 , y = ~y_hat, z= ~x_2, data = red_line, color = "red") %>% 
-  plotly::add_trace(x= ~x_1 , y = ~y_hat_2, z= ~x_2, data = red_line_2, color = "red")
-fig
-
-plotly::plot_ly( x= red_line_2$x_1 ,y=red_line_2$y_hat_2, z = red_line_2$x_2, color = "red" )
-
-
+fig<-plot_ly(x = dat$x_1,y = dat$y, z = dat$x_2, alpha = .8) %>% add_markers() %>% 
+      add_trace(x= ~x_1 , y = ~y_hat, z= ~x_2, data = red_line, color = "red") %>% 
+      layout(scene = list(xaxis = list(title = 'x_1'),
+                          yaxis = list(title = 'y_hat'),
+                          zaxis = list(title = 'x_2')))
 
 
 
@@ -233,7 +243,7 @@ plotly::plot_ly( x= red_line_2$x_1 ,y=red_line_2$y_hat_2, z = red_line_2$x_2, co
 # 2 and the model will be more linear
 library(splines)
 
-my_model_2 <- lm(cbind(x_Train$x_1, x_Train$y) ~ ns(x_Train$x_2, df = 1))
+my_model_2 <- lm(cbind(x_Train$x_1, x_Train$y) ~ ns(x_Train$x_2, df = 2))
 
 predict(my_model_2, x_Test[-3])
 red_line_2<-data.frame(predict(my_model_2, x_Test[-3]),x_Train$x_2 )
@@ -255,7 +265,7 @@ add_trace(fig,
 # Graph Resolution is important for more complex shapes
 graph_reso <- 0.05
 # given x and y give me model for how deep thats our surface
-redline_lm <- lm(x_2 ~ 0 + x_1 + y_hat,data = red_line)
+redline_lm <- lm(x_2 ~ x_1 + y_hat,data = red_line)
 # Setup Axis
 axis_x <- seq(min(red_line$x_1), max(red_line$x_1), by = graph_reso)
 axis_y <- seq(min(red_line$y_hat), max(red_line$y_hat), by = graph_reso)
@@ -270,11 +280,10 @@ redline_lm_surface <- reshape2::acast(redline_lm_surface, y_hat ~ x_1, value.var
 # add the surface
 library(plotly)
  
-fig<-plot_ly(dat,x = ~x_1,y = ~y, z = ~x_2, alpha = .8) 
-fig <- fig %>% add_markers()
-fig <- fig %>% layout(scene = list(xaxis = list(title = 'x_1'),
-                                   yaxis = list(title = 'y_hat'),
-                                   zaxis = list(title = 'x_2')))
+fig<-plot_ly(dat,x = ~x_1,y = ~y, z = ~x_2, alpha = .8) %>% add_markers() %>% 
+  layout(scene = list(xaxis = list(title = 'x_1'),
+                      yaxis = list(title = 'y_hat'),
+                      zaxis = list(title = 'x_2')))
 
 
 
