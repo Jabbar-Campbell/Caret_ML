@@ -155,9 +155,34 @@ confusionMatrix(as.factor(y_hat), as.factor(Test$y))$overall[1]
 
 
 
+#####a faster way would be using map_df ...for each k the following
+# will be run and stored in a data frame
+ks<-c(1,3,5,7,9) # for k values
+ks<-seq(3,251,2) # sequence of k values
+map_df(ks,function(x){
+  fit<- knn3(y ~ ., data = Train, k=k)
+  y_hat_train<-predict(fit, Train, type = "class")
+  acc_train<- confusionMatrix(y_hat, Train$sex)$overall[[1]]
+  df_train<-as.data.frame(y_hat_train,acc_train)
+  
+  
+  fit<- knn3(y~., data = Train, k=k)
+  y_hat_test<-predict(fit, Test, type = "class")
+  acc_test<- confusionMatrix(y_hat, Test$sex)$overall[[1]]
+  df_test<-as.data.frame(y_hat_test,acc_test)
+  
+  tibble(Train = acc_train, test = acc_test)
+})
 
-### 
-sapply(c(1,3,5,7,9,11), knn3(y~., data = Train, k=., type ="class"))
+# the table can be used in a ggplot to compare
+# accuraces on the x axis and k value on the y axis
+# coloring by Data type
+accuracy %>% mutate(k = ks) %>%
+  gather(set, accuracy, -k) %>%
+  mutate(set = factor(set, levels = c("train", "test"))) %>%
+  ggplot(aes(k, accuracy, color = set)) + 
+  geom_line() +
+  geom_point()
 
-knn_list<-lapply(c(1,3,5,7,9,11), function(x)knn3(y~., data = Train, k=x, type ="class"))
-row.names(knn_list[[2]]$learn$X)
+ks[which.max(accuracy$test)]
+max(accuracy$test)
