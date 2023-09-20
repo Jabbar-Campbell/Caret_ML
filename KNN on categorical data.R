@@ -78,184 +78,86 @@ p2<-plot_cond_prob(predict(knn_fit, mnist_27$true_p)[,2])+
 ################################HOMEWORK########################
 ###############################################################]
 
-dim(heights)
-set.seed(1) 
-
-# Sets the partition
-index<-createDataPartition(heights$height, times = 100, p = .5)          
-df<-as.data.frame(1:100)
-colnames(df)<-"row"
-df$indices<-index
-
-heights[index[[2]],]
-
-
-# Sets my train Data
-Train<-heights[index$Resample1,]
-tmp<-list()
-for( i in 1:100){
-  tmp[[i]]<-heights[index[[i]],]
-  tmp
-}
-df$Train<-tmp
- 
-
-#Sets my Test data
-Test<-heights[-index$Resample1,]
-tmp<-list()
-for( i in 1:100){
-  tmp[[i]]<-heights[-index[[i]],]
-  tmp
-}
-df$Test<-tmp
-
-
-
-
-
-
-# knn with k = 3
-knn3(sex ~ . ,data = Train, k=3)
-knn_fits<-lapply(c(1,101,3),function(x)knn3(sex ~ ., data = Train, k = x))
-
-# knn on a list of K's
-#knn3(sex~., data = df$Train[[1]], k=1)
-#df$knn_fits<-lapply(seq_along(df$Train),function(x)knn3( sex ~ ., data = df$Train[[x]]))
-
-# predictions on knn
-#predict(knn_fits,Test)# list of probabilities
-#predict(knn_fits,Test, type = "class")# list of y_hat predictions
-#predict(df$knn_fit_1[[1]],df$Test[[1]], type = "class")
-
-# confusion matrix of knn y_hats (sex) vs orignal test column sex
-# compare each to the test for accuracy
-#confusionMatrix(as.factor(knn_hats[[1]]),as.factor(Test$sex))
-#lapply(knn_hats,function(x)confusionMatrix(as.factor(x),Test$sex))
-#confusionMatrix(as.factor(df$y_hats_1[[1]]),as.factor(df$Test[[1]]$sex))$overall[[1]]
-
-#The measure "F" is a combination of precision and recall
-# comute F_meas using reference[1] or Female as default 
-#F_meas(as.factor(knn_hats[[3]]), Test$sex)
-#lapply(knn_hats,function(x)F_meas(data = as.factor(x),reference = Test$sex,relevant = levels(Test$sex)[1]))
-
-
-
-
-### we want to run knn for varying K's c(1,101,3) the way its done here is for each k we.....
+### we want to run knn for varying K's seq(1,101,3) the way its done here is for each k we.....
 # make a list of models based on the boot strap. 
 #  make predictions using respective test data
 #   compare those predictions to respective test data using a Confusion matrix for accuracy
 #    compare those predictions to respective test data using a F_meas()  
 #         outputs will be appended to a dataframe so we can keep track
 
-############# for K = 1
-for(i in 1:100){
-  tmp[[i]]<-knn3(sex ~ . , data = df$Train[[i]], k =1)
-  tmp
-}
-df$knn_fit_1<-tmp
 
-for(i in 1:100){
-  tmp[[i]]<-predict(df$knn_fit_1[[i]],df$Test[[i]], type = "class")
-  tmp
-}
-df$y_hats_1<-tmp
+###apply functions are easier the for loops just list the variable you want to use in th
+# the function in this case elements of the list are the k variable.
 
-for(i in 1:100){
-  tmp[i]<-confusionMatrix(as.factor(df$y_hats_1[[i]]),as.factor(df$Test[[i]]$sex))$overall[[1]]
-  tmp
-}
-df$accuracy_1<-tmp
+set.seed(1)
+test_index <- createDataPartition(heights$sex, times = 1, p = 0.5, list = FALSE)
+test_set <- heights[test_index, ]
+train_set <- heights[-test_index, ]     
 
-for(i in 1:100){
-  tmp[i]<-F_meas(as.factor(df$y_hats_1[[i]]), df$Test[[i]]$sex) 
-  tmp
-}
-df$f_meas_1<-tmp
-#################
+ks <- seq(1, 101, 3)
+F_1 <- sapply(ks, function(k){
+  fit <- knn3(sex ~ height, data = train_set, k = k)
+  y_hat <- predict(fit, test_set, type = "class") %>% 
+    factor(levels = levels(train_set$sex))
+  F_meas(data = y_hat, reference = test_set$sex)
+})
+plot(ks, F_1)
+max(F_1)
+ks[which.max(F_1)]
 
 
 
-############# for K = 101
-for(i in 1:100){
-  tmp[[i]]<-knn3(sex ~ . , data = df$Train[[i]], k =101)
-  tmp
-}
-df$knn_fit_101<-tmp
+##########################################HOMEWORK QUESTION 2 #################################
+####################KNN to predict tissue from gene expression#######################
+data("tissue_gene_expression")
+str(tissue_gene_expression)
 
-for(i in 1:100){
-  tmp[[i]]<-predict(df$knn_fit_101[[i]],df$Test[[i]], type = "class")
-  tmp
-}
-df$y_hats_101<-tmp
+set.seed(1)
+class(tissue_gene_expression)
 
-for(i in 1:100){
-  tmp[i]<-confusionMatrix(as.factor(df$y_hats_101[[i]]),as.factor(df$Test[[i]]$sex))$overall[[1]]
-  tmp
-}
-df$accuracy_101<-tmp
-
-for(i in 1:100){
-  tmp[i]<-F_meas(as.factor(df$y_hats_101[[i]]), df$Test[[i]]$sex) 
-  tmp
-}
-df$f_meas_101<-tmp
-#################
+df<-as.data.frame(tissue_gene_expression)  
+df$row<-1:189
+index<-createDataPartition(df$y,times = 1, p = .5)
 
 
+`%notin%` <- Negate(`%in%`)
+
+Train<-filter(df, df$row %in% index[[1]])
+Test<-filter(df, df$row %notin% index[[1]])
 
 
+knn_tissue_fit<-knn3(y ~.,data = Train, k = 1)
+y_hat<-predict(knn_tissue_fit, Test, type = "class")
+confusionMatrix(as.factor(y_hat), as.factor(Test$y))$overall[1]
 
-#############  for K = 3
-for(i in 1:100){
-  tmp[[i]]<-knn3(sex ~ . , data = df$Train[[i]], k =3)
-  tmp
-}
-df$knn_fit_3<-tmp
+knn_tissue_fit<-knn3(y ~.,data = Train, k = 3)
+y_hat<-predict(knn_tissue_fit, Test, type = "class")
+confusionMatrix(as.factor(y_hat), as.factor(Test$y))$overall[1]
 
-for(i in 1:100){
-  tmp[[i]]<-predict(df$knn_fit_3[[i]],df$Test[[i]], type = "class")
-  tmp
-}
-df$y_hats_3<-tmp
+knn_tissue_fit<-knn3(y ~.,data = Train, k = 5)
+y_hat<-predict(knn_tissue_fit, Test, type = "class")
+confusionMatrix(as.factor(y_hat), as.factor(Test$y))$overall[1]
+ 
 
-for(i in 1:100){
-  tmp[i]<-confusionMatrix(as.factor(df$y_hats_3[[i]]),as.factor(df$Test[[i]]$sex))$overall[[1]]
-  tmp
-}
-df$accuracy_3<-tmp
+knn_tissue_fit<-knn3(y ~.,data = Train, k = 7)
+y_hat<-predict(knn_tissue_fit, Test, type = "class")
+confusionMatrix(as.factor(y_hat), as.factor(Test$y))$overall[1]
 
-for(i in 1:100){
-  tmp[i]<-F_meas(as.factor(df$y_hats_3[[i]]), df$Test[[i]]$sex) 
-  tmp
-}
-df$f_meas_3<-tmp
-################# 
+knn_tissue_fit<-knn3(y ~.,data = Train, k = 9)
+y_hat<-predict(knn_tissue_fit, Test, type = "class")
+confusionMatrix(as.factor(y_hat), as.factor(Test$y))$overall[1]
+
+
+knn_tissue_fit<-knn3(y ~.,data = Train, k = 11)
+y_hat<-predict(knn_tissue_fit, Test, type = "class")
+confusionMatrix(as.factor(y_hat), as.factor(Test$y))$overall[1]
 
 
 
 
-df %>% mutate(., avg_f_meas1 = mean(unlist(f_meas_1)))
 
-# for each f measure we can see which has the highest score 
-df$max_f_meas1<- max(unlist(df$f_meas_1))
-df$max_f_meas101<- max(unlist(df$f_meas_101))
-df$max_f_meas3<- max(unlist(df$f_meas_3))
+### 
+sapply(c(1,3,5,7,9,11), knn3(y~., data = Train, k=., type ="class"))
 
-unique(df[,c(17,18,19)])
-unique(df[,c(20,21,22)])
-
-which(unlist(df$f_meas_101)>.644)
-
-
-
-unlist(df$f_meas_101)[which(unlist(df$f_meas_101)>.6)] %>% min()
-
-unlist(df$f_meas_1)[which(unlist(df$f_meas_1)>.6)] %>% min()
-
-unlist(df$f_meas_3)[which(unlist(df$f_meas_3)>.6)] %>% min()
-
-str(df[,c(8,12,16)])
-
-
-max()
+knn_list<-lapply(c(1,3,5,7,9,11), function(x)knn3(y~., data = Train, k=x, type ="class"))
+row.names(knn_list[[2]]$learn$X)
