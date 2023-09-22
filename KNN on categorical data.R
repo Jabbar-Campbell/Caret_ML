@@ -185,4 +185,4 @@ accuracy %>% mutate(k = ks) %>%
   geom_point()
 
 ks[which.max(accuracy$test)]
-max(accuracy$test)
+max(accuracy$test) 
