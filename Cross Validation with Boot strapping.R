@@ -44,10 +44,34 @@ M<-replicate(B,{
 } )
 
 # a histograms of these medians shows a normal distribution
+# People call this a Monte Carlo Simulation
 qplot(M,bins =30, color = I("black"))
 
+
+
+# Distribution allows us to calculate Confidence Interval
+# in a single sample of 100 incomes X the confidence interval would be the folowing
+median(X) +1.96 * sd(X)/ sqrt(N) * c(-1,1)
+
+
+# M is more  many samples of 100 and would give us  closer readings
+# on our actual confidence interval with
+# you can run the above for each sample or...
+quantile(M,c(.25,.95))
+
+
+# even you took enough boot strapped data and boot strapped that
+# the average metric would be more indicative then any single boot strap
+# for a given metric
+
+
+
+
+
+
+
 # we can then plot ???? 
-# I dont understand this plot or the syntax whats x and whats y
-# are we plo
-qplot(sample = scale(M), xlab = "theoretical", ylab = "sample")+
+# I don't understand this plot or the syntax whats x and whats y
+# what are we plotting the medians against? why is it scaled?
+qplot(sample = M, xlab = "theoretical", ylab = "sample")+
   geom_abline()
