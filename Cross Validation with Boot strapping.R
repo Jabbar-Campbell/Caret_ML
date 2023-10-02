@@ -66,6 +66,110 @@ quantile(M,c(.25,.95))
 
 
 
+########################################HOMEWORK############
+##########################################Q1 Q2################
+
+# Going back to our 2 vs 7 data problem
+# lets resample the entire data set
+# unlike creating a partition sampling allows us
+# to pick the same index more than once
+# caret::createResample()returns indices unlike stat::sample()
+library(dslabs)
+library(caret)
+
+data("mnist_27")
+set.seed(1995)
+
+
+indexs<- createResample(mnist_27$train$y,10)
+
+# how many times does 7 occur in the first data frame
+which(indexs[[1]]==7) %>% as.data.frame() %>% count
+
+#how many times does 3 occur across all dataframes
+lapply(indexs,function(x)
+              no_3<-(which(x == 3))) %>% unlist %>%data.frame %>% count
+ 
+ 
+                                      #### Q 3 #####
+# 75 quantile of the data 1 being the 100th quantile
+qnorm(.75)
+
+
+# on the y space where would 75 percent be is given by
+quantile(y,0.75)
+
+
+
+############################### MONTE CARLO #####################################
+# takes samples at random and without duplication
+# when sample size is the same as the data
+# its like a reshuffling which I feel
+# is the same as the orginal data just in different orders
+# isn't this better????
+
+set.seed(1)
+y<-rnorm(100,0,1)
+B<-10^4
+M_star<-replicate(B,{
+  X_star<-sample(y,length(y),replace = TRUE) # this is a sample
+  quantile(X_star,.75) # theoretical quantile for each reshuffle
+})
+
+# average of our generated quantiles
+mean(M_star)
+# vs original quantile
+quantile(y,.75)
+sd(M_star)/sqrt(length(M_star))
+
+
+  
+
+
+
+# ################################# BOOT STRAPPING ######################
+# Not only randomly samples the original data but also selects indices of the sampled data 
+# (kind of like sampling from the sample)
+# computationally this is better than resampling a gazillion times.... 
+
+set.seed(1)
+y<-rnorm(100,0,1)
+indexs<-createResample(y,10000) 
+
+indexs[[1]]
+z<-y[indexs[[1]]]
+quantile(z,0.75)
+
+
+# from these index's obtain the values for each sample
+# along with the 75 the quantile as per example above
+# the data set will have changed because some samples
+# will be counted more than once
+mc=list()
+tmp_75=list()
+btstr=list()
+btstr_75=list()
+
+for (i in 1:10000){
+  X_star<-sample(y,length(y),replace = TRUE)# this is the monte carlo of original data
+  #mc[[i]]<-y[c(indexs[[i]])] 
+  #mc_75[[i]]<-quantile(tmp[[i]],0.75) #75th quantiles of each
+              index<-createResample(X_star,1) #indices of sampled data
+              btsr[[i]]<-X_star[c(indexs[[i]])] # this is the boot strap or or values of sampled data
+             #btstr[[i]]<- sample(mc_75)   # this is the bootstrapped step selecting a few histograms
+             btstr_75[[i]]<-quantile(btstr[[i]],0.75) # 75th quantile of the boot strapped data
+  tmp
+  
+}
+
+# average of our generated quantiles
+unlist(Q_75) %>% mean()
+# vs orignal data
+quantile(y,.75)
+
+
+sd(unlist(Q_75))/sqrt(length(unlist(Q_75)))
+
 
 
 
