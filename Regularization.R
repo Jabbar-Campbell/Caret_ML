@@ -3,6 +3,9 @@
 # once we realize this we can assign a penality.
 # we can try a series of penalties to see which parameter give the most accurate penality
 # to a given feature.
+RMSE<-function(true_ratings,predicted_ratings){
+  sqrt(mean((true_ratings - predicted_ratings)^2))
+}
 
 
 set.seed(1986)
@@ -62,23 +65,40 @@ x<-merge(schools,x)
 overall <- mean(sapply(scores, mean))
 x$mu<-overall
 
-
+RMSE<-function()
+  
 #I'm trying to loop thru parameters calculating the RMSE between a weighted prediction and the actual scores as a list
 # then plotting this list of RMSE's  to see which Parameter gives the lowest RMSE
 #   
-Alpha<-seq(10,250,10)
 
-my_RMSE<-lapply(Alpha, function(i){
-   y <-x %>% mutate(x, y_hat =mu+( score / (no_per_size + i)) ) %>% top_n(.,1000,y_hat) %>% arrange(.,desc(y_hat))
-  my_RMSE<-RMSE(y$y_hat, y$score )[1]
-  my_RMSE
+#  The regularized score (your y_hat) should be calculated in the same way as Q5.
+#  The quality variable should only be used in the RMSE calculation.  
+#  You are removing the overall average (-overall) when you should not be as instructed in the Q8 prompt.
+library(tidyverse)
+  
+  Alpha<-seq(10,250,1)
+
+mutate(x, y_hat = mu +( score / (no_per_size + 25)) ) %>% top_n(.,10)  %>% arrange(.,desc(y_hat)) 
+sum(114-overall)
+ 
+my_RMSE<-lapply(Alpha, function(i){ 
+score_reg <- sapply(scores, function(x)  
+  overall /(length(x)+i)) ###here we tack on the SEM or standard error of the mean
+                                            # its basically the Standard deviation of the mean
+z<-schools %>% mutate(score_reg = score_reg)  
+ RMSE(z$quality,z$score_reg)
 }) %>% unlist()
 
 
-data.frame(Alpha,my_RMSE) %>% arrange(.,desc(my_RMSE)) 
+#with out removing overall mean????
+alpha <- 131
+score_reg <- sapply(scores, function(x)  overall + sum(x-overall)/(length(x)+alpha))
+schools %>% mutate(score_reg = score_reg) %>%
+  top_n(10, score_reg) %>% arrange(desc(score_reg))
 
 
-%>% plot()
+data.frame(Alpha,my_RMSE) %>%  arrange(.,desc(my_RMSE)) %>% 
+  plot()
 
 
 x<-x %>% mutate(., y_hat =mu+( score / (size + 25)) ) %>% top_n(.,10,y_hat) %>% arrange(.,desc(y_hat))
